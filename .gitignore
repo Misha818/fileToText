@@ -1,0 +1,37 @@
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment folders
+.venv/
+venv/
+env/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE / editor settings
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Temporary files
+*.tmp
+*.temp
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Output files
+*.out
+
+# Uploaded files (Flask project)
+uploads/

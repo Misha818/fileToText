@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArabicOCR</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 0;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: #006666;
+            font-size: 1.8rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+            font-size: 1rem;
+        }
+
+        input[type="file"],
+        select,
+        textarea,
+        button {
+            width: 100%;
+            margin-top: 5px;
+            padding: 12px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1 1 calc(33.333% - 10px);
+            background: #006666;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #004d4d;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            button {
+                flex: 1 1 100%;
+            }
+
+            textarea {
+                min-height: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ArabicOCR</h1>
+    <div class="container">
+        <label for="fileInput">Upload File (PDF, JPG, JPEG, PNG):</label>
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png">
+
+        <label for="ocrEngine">Select OCR Engine:</label>
+        <select id="ocrEngine">
+            <option value="EasyOCR">Easy-OCR</option> <!-- Good for English, have not checked for Arabic -->
+            <option value="MistralOCR">Mistral OCR</option> <!-- Good for English, Arabic -->
+            <option value="TesseractOCR">Tesseract OCR</option> <!-- Good for Armenian -->
+        </select>
+
+        <button onclick="uploadFile()">Run OCR</button>
+
+        <label for="outputText">Extracted Arabic Text:</label>
+        <textarea id="outputText" placeholder="OCR result will appear here..."></textarea>
+
+        <div class="btn-group">
+            <button onclick="translateText()">Translate</button>
+            <button onclick="transliterateText()">Transliterate</button>
+            <button onclick="downloadDocx()">Download DOCX</button>
+        </div>
+    </div>
+
+    <script>
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const engine = document.getElementById('ocrEngine').value;
+            if (!fileInput.files.length) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            formData.append("engine", engine);
+
+            const res = await fetch("/upload", { method: "POST", body: formData });
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('outputText').value = data.text || "";
+            } else {
+                alert("OCR failed. Check the server logs.");
+            }
+        }
+
+        async function translateText() {
+            const text = document.getElementById('outputText').value.trim();
+            if (!text) {
+                alert("No text to translate.");
+                return;
+            }
+
+            const res = await fetch("/translate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('outputText').value += "\n\n[Translation]\n" + data.translation;
+            } else {
+                alert("Translation failed.");
+            }
+        }
+
+        async function transliterateText() {
+            const text = document.getElementById('outputText').value.trim();
+            if (!text) {
+                alert("No text to transliterate.");
+                return;
+            }
+
+            const res = await fetch("/transliterate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('outputText').value += "\n\n[Transliteration]\n" + data.transliteration;
+            } else {
+                alert("Transliteration failed.");
+            }
+        }
+
+        function downloadDocx() {
+            const text = document.getElementById('outputText').value.trim();
+            if (!text) {
+                alert("No content to download.");
+                return;
+            }
+            fetch("/download", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text })
+            })
+                .then(res => res.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "ArabicOCR_Output.docx";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                });
+        }
+    </script>
+</body>
+
+</html>
